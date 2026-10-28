@@ -1,6 +1,7 @@
 import pytest
 import json
 from pathlib import Path
+from sqlalchemy import create_engine
 
 from project.app import app, db
 
@@ -20,11 +21,17 @@ def client():
     ] = f"sqlite:///{BASE_DIR.joinpath(TEST_DB)}"
 
     with app.app_context():
-        db.create_all()
-
-        yield app.test_client()
-
-        db.drop_all()
+        original_engine = db.engines[None]
+        test_engine = create_engine("sqlite:///:memory:")
+        db.engines[None] = test_engine
+        try:
+            db.create_all()
+            yield app.test_client()
+        finally:
+            db.session.remove()
+            db.drop_all()
+            db.engines[None] = original_engine
+            test_engine.dispose()
 
 
 def login(client, username, password):
@@ -105,3 +112,39 @@ def test_delete_message(client):
     data = json.loads(rv.data)
 
     assert data["status"] == 1
+
+
+def test_login_navigation_and_forms(client):
+    from html.parser import HTMLParser
+
+    class Forms(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.forms = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "form":
+                self.forms.append(dict(attrs))
+
+    for path in ("/", "/search/"):
+        assert b'href="/login"' in client.get(path).data
+    parser = Forms()
+    parser.feed(client.get("/login").get_data(as_text=True))
+    assert {"action": "/login", "method": "post"} in parser.forms
+    login(client, "admin", "admin")
+    response = client.get("/")
+    parser = Forms()
+    parser.feed(response.get_data(as_text=True))
+    assert {"action": "/add", "method": "post"} in parser.forms
+    assert b'href="/logout"' in response.data
+    assert b'href="/login"' not in response.data
+
+
+def test_search_results(client):
+    login(client, "admin", "admin")
+    client.post("/add", data={"title": "First post", "text": "Needle"})
+    client.post("/add", data={"title": "Other post", "text": "Unrelated"})
+    response = client.get("/search/?query=NEEDLE")
+    assert b"First post" in response.data
+    assert b"Other post" not in response.data
+    assert b"No matching entries." in client.get("/search/?query=missing").data

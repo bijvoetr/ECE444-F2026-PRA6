@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flaskr</title>
+</head>
+<body>
+  <h1>Flaskr</h1>
+  <nav>
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('search') }}">Search</a>
+    {% if session.get('logged_in') %}
+    <a href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+    <a href="{{ url_for('login') }}">Log in</a>
+    {% endif %}
+  </nav>
+  {% for message in get_flashed_messages() %}
+  <p role="status">{{ message }}</p>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</body>
+</html>

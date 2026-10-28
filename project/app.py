@@ -152,17 +152,15 @@ def delete_entry(post_id):
 
 @app.route('/search/', methods=['GET'])
 def search():
-    query = request.args.get("query")
-    entries = db.session.query(models.Post)
-
+    query = request.args.get("query", "").strip()
+    entries = []
     if query:
-        return render_template(
-            'search.html',
-            entries=entries,
-            query=query
-        )
-
-    return render_template('search.html')
+        entries = [
+            entry for entry in db.session.query(models.Post)
+            if query.lower() in entry.title.lower()
+            or query.lower() in entry.text.lower()
+        ]
+    return render_template("search.html", entries=entries, query=query)
 
 if __name__ == "__main__":
     app.run()
