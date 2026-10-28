@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+{% for message in get_flashed_messages() %}
+<div>{{ message }}</div>
+{% endfor %}
+
+{% if session.logged_in %}
+{{ url_for('add_entry') }}
+<input name="title">
+<textarea name="text"></textarea>
+<input type="submit">
+</form>
+{% endif %}
+
+<ul>
+{% for entry in entries %}
+<li class="entry">
+  <h2 id="{{ entry.id }}">{{ entry.title }}</h2>
+  {{ entry.text|safe }}
+</li>
+{% else %}
+<li><em>No entries yet. Add some!</em></li>
+{% endfor %}
+</ul>
+
+</body>
+</html>
+
+</body>
+
+<script
+  type="text/javascript"
+  src="{{ url_for('static', filename='main.js') }}"
+></script>
