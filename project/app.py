@@ -37,6 +37,9 @@ db = SQLAlchemy(app)
 
 from project import models
 
+with app.app_context():
+    db.create_all()
+
 
 
 def connect_db():
